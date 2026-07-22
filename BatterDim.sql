@@ -1,0 +1,6 @@
+SELECT
+    BATTER_NAME,
+    STAND AS BATTER_STAND,
+    AGE_BAT AS BATTER_AGE
+FROM {{ ref('query_log') }}
+GROUP BY 1, 2, 3

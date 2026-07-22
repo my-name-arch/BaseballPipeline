@@ -1,6 +1,21 @@
 WITH raw_pitches AS (
     SELECT * 
     FROM BASEBALL_DB.RAW.STATCAST_PITCHES
+    WHERE GAME_TYPE = 'R'
+      AND RELEASE_SPEED IS NOT NULL
+      AND RELEASE_SPIN_RATE IS NOT NULL
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY GAME_PK, AT_BAT_NUMBER, PITCH_NUMBER 
+        ORDER BY NULL
+    ) = 1
+),
+
+dim_batters_unique AS (
+    SELECT 
+        BATTER_ID,
+        MAX(BATTER_NAME) AS BATTER_NAME
+    FROM BASEBALL_DB.RAW.DIM_BATTERS
+    GROUP BY BATTER_ID
 ),
 
 parsed AS (
@@ -9,51 +24,38 @@ parsed AS (
         COALESCE(batter.BATTER_NAME, 'Unknown Batter') AS BATTER_NAME,
         p.PLAYER_NAME AS PITCHER_NAME,
 
-        -- Simplified & cleaned pitch result logic
-        REPLACE(
-            CASE 
-                -- Specific field out short-names
-                WHEN NULLIF(p.EVENTS, 'None') = 'field_out' AND p.BB_TYPE = 'ground_ball' THEN 'ground_out'
-                WHEN NULLIF(p.EVENTS, 'None') = 'field_out' AND p.BB_TYPE = 'line_drive' THEN 'line_out'
-                WHEN NULLIF(p.EVENTS, 'None') = 'field_out' AND p.BB_TYPE = 'fly_ball' THEN 'fly_out'
-                WHEN NULLIF(p.EVENTS, 'None') = 'field_out' AND p.BB_TYPE = 'popup' THEN 'pop_out'
-
-                -- Any other generic field outs
-                WHEN NULLIF(p.EVENTS, 'None') = 'field_out' AND NULLIF(p.BB_TYPE, 'None') IS NOT NULL THEN 
-                    REPLACE(p.BB_TYPE, '_ball', '') || ' out'
-
-                -- Direct outcomes (single, double, triple, home_run, walk, strikeout, etc.)
-                WHEN NULLIF(p.EVENTS, 'None') IS NOT NULL THEN 
-                    p.EVENTS
-
-                -- Fallback if EVENTS is NULL/None (batted ball type or pitch description)
-                ELSE COALESCE(
-                    REPLACE(NULLIF(p.BB_TYPE, 'None'), '_ball', ''),
-                    NULLIF(p.DESCRIPTION, 'None')
-                )
-            END,
-            '_', ' '
-        ) AS PITCH_RESULT,
+        TO_VARCHAR(TRY_TO_DATE(p.GAME_DATE::VARCHAR), 'MM/DD/YYYY') AS GAME_DATE,
         
+        -- Pitcher Game Pitch Count
+        {{ pitcher_pitch_count('p.GAME_PK', 'p.PITCHER', 'p.AT_BAT_NUMBER', 'p.PITCH_NUMBER') }} AS PITCH_COUNT,
+
+        -- Clean Pitch Result
+        {{ clean_pitch_result('p.EVENTS', 'p.BB_TYPE', 'p.DESCRIPTION') }} AS PITCH_RESULT,
+        
+        -- Game & Season Averages (By Pitch Type)
+        {{ pitcher_game_avg('p.RELEASE_SPEED', 'p.GAME_PK', 'p.PITCHER', 'p.PITCH_TYPE', 1) }} AS GAME_AVG_SPEED,
+        {{ pitcher_game_avg('p.RELEASE_SPIN_RATE', 'p.GAME_PK', 'p.PITCHER', 'p.PITCH_TYPE', 0) }} AS GAME_AVG_SPIN,
+        {{ pitcher_season_avg('p.RELEASE_SPEED', 'p.GAME_YEAR', 'p.PITCHER', 'p.PITCH_TYPE', 1) }} AS SEASON_AVG_SPEED,
+        {{ pitcher_season_avg('p.RELEASE_SPIN_RATE', 'p.GAME_YEAR', 'p.PITCHER', 'p.PITCH_TYPE', 0) }} AS SEASON_AVG_SPIN,  
+        
+        -- Overall Game & Season Averages (All Pitches Combined)
+        {{ pitcher_game_avg('p.RELEASE_SPEED', 'p.GAME_PK', 'p.PITCHER', 1) }} AS GAME_SPEED,
+        {{ pitcher_game_avg('p.RELEASE_SPIN_RATE', 'p.GAME_PK', 'p.PITCHER', 0) }} AS GAME_SPIN,
+        {{ pitcher_season_avg('p.RELEASE_SPEED', 'p.GAME_YEAR', 'p.PITCHER', 1) }} AS SEASON_SPEED,
+        {{ pitcher_season_avg('p.RELEASE_SPIN_RATE', 'p.GAME_YEAR', 'p.PITCHER', 0) }} AS SEASON_SPIN,  
+
+        {{ rename_kinematics('p.VX0', 'p.VZ0', 'p.AX', 'p.AZ') }},
+
         p.DES AS PLAY_DESCRIPTION,
         
-        -- Exclude raw ID & outcome columns to keep table clean
         p.* EXCLUDE (
-            BATTER, FIELDER_2, FIELDER_3, FIELDER_4, FIELDER_5, 
-            FIELDER_6, FIELDER_7, FIELDER_8, FIELDER_9,
-            ON_1B, ON_2B, ON_3B, PITCHER, PFX_X, PFX_Z, PLATE_X, PLATE_Z,
-            HC_X, HC_Y, TFS_DEPRECATED, TFS_ZULU_DEPRECATED, UMPIRE, PLAYER_NAME,
-            SV_ID, iso_value, delta_home_win_exp, delta_run_exp, age_pit_legacy, age_bat_legacy,
-            batter_days_since_prev_game, batter_days_until_next_game, pitcher_days_until_next_game,
-            attack_angle, attack_direction, swing_path_tilt, intercept_ball_minus_batter_pos_x_inches,
-            intercept_ball_minus_batter_pos_y_inches, BAT_SCORE, FLD_SCORE, POST_BAT_SCORE, POST_FLD_SCORE,DES,BB_TYPE,EVENTS,description,SPIN_DIR,SPIN_RATE_DEPRECATED,BREAK_ANGLE_DEPRECATED,BREAK_LENGTH_DEPRECATED
+            {{ statcast_excluded_columns() }}
         )
     FROM raw_pitches p
-    
-    -- Batter
-    LEFT JOIN BASEBALL_DB.RAW.DIM_BATTERS batter
+    LEFT JOIN dim_batters_unique batter
         ON p.BATTER = batter.BATTER_ID
 )
 
 SELECT *
 FROM parsed
+ORDER BY GAME_SPIN DESC

@@ -1,0 +1,6 @@
+SELECT
+    PITCH_TYPE,
+    PITCH_NAME
+FROM {{ ref('query_log') }}
+WHERE PITCH_TYPE IS NOT NULL
+GROUP BY 1, 2
