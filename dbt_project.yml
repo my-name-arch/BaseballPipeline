@@ -2,8 +2,7 @@ name: 'baseball_pipeline'
 version: '1.0.0'
 config-version: 2
 
-# Profile linking to your Snowflake connection
-profile: 'default' 
+profile: 'default'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -15,3 +14,9 @@ snapshot-paths: ["snapshots"]
 clean-targets:
   - "target"
   - "dbt_packages"
+
+# Notice models here is a dictionary/struct, NOT a dash list (-)
+models:
+  baseball_pipeline:
+    staging:
+      +materialized: view

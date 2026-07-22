@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: query_log
+    description: "Cleaned Statcast pitch-level dataset and game details."
+    columns:
+      - name: BATTER_NAME
+        description: "Name of the batter."
+        tests:
+          - not_null
+
+      - name: PITCHER_NAME
+        description: "Name of the pitcher."
+        tests:
+          - not_null
+
+      - name: STAND
+        description: "Batter side/standing preference ('R' or 'L')."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['R', 'L']
+
+      - name: P_THROWS
+        description: "Pitcher throwing hand ('R' or 'L')."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['R', 'L']
+
+      - name: HOME_TEAM
+        description: "Home team abbreviation."
+        tests:
+          - not_null
+
+      - name: AWAY_TEAM
+        description: "Away team abbreviation."
+        tests:
+          - not_null
+      - name: HIT_LOCATION
+        description: "Field location index where the ball was hit."
+        tests:
+          - not_null
