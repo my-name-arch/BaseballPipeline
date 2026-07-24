@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: query_log
+  - name: stg_statcast_pitches
     description: "Cleaned Statcast pitch-level dataset and game details."
 
     columns:
@@ -46,5 +46,8 @@ models:
 
       - name: RELEASE_SPIN_RATE
         description: "Raw spin rate of the individual pitch in RPM."
+        tests:
+          - not_null
+      - name: API_BREAK_X_ARM
         tests:
           - not_null

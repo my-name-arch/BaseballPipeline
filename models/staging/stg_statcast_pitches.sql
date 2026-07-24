@@ -1,6 +1,6 @@
 WITH raw_pitches AS (
     SELECT * 
-    FROM BASEBALL_DB.RAW.STATCAST_PITCHES
+    FROM {{ source('baseball_raw', 'STATCAST_PITCHES') }}
     WHERE GAME_TYPE = 'R'
       AND RELEASE_SPEED IS NOT NULL
       AND RELEASE_SPIN_RATE IS NOT NULL
@@ -14,13 +14,13 @@ dim_batters_unique AS (
     SELECT 
         BATTER_ID,
         MAX(BATTER_NAME) AS BATTER_NAME
-    FROM BASEBALL_DB.RAW.DIM_BATTERS
+    FROM {{ source('baseball_raw', 'DIM_BATTERS') }}
     GROUP BY BATTER_ID
 ),
 
 parsed AS (
     SELECT 
-        -- Batter & Pitcher
+        -- Batter & Pitcher Identifiers
         COALESCE(batter.BATTER_NAME, 'Unknown Batter') AS BATTER_NAME,
         p.PLAYER_NAME AS PITCHER_NAME,
 
@@ -39,15 +39,19 @@ parsed AS (
         {{ pitcher_season_avg('p.RELEASE_SPIN_RATE', 'p.GAME_YEAR', 'p.PITCHER', 'p.PITCH_TYPE', 0) }} AS SEASON_AVG_SPIN,  
         
         -- Overall Game & Season Averages (All Pitches Combined)
-        {{ pitcher_game_avg('p.RELEASE_SPEED', 'p.GAME_PK', 'p.PITCHER', 1) }} AS GAME_SPEED,
-        {{ pitcher_game_avg('p.RELEASE_SPIN_RATE', 'p.GAME_PK', 'p.PITCHER', 0) }} AS GAME_SPIN,
-        {{ pitcher_season_avg('p.RELEASE_SPEED', 'p.GAME_YEAR', 'p.PITCHER', 1) }} AS SEASON_SPEED,
-        {{ pitcher_season_avg('p.RELEASE_SPIN_RATE', 'p.GAME_YEAR', 'p.PITCHER', 0) }} AS SEASON_SPIN,  
+        {{ pitcher_game_avg('p.RELEASE_SPEED', 'p.GAME_PK', 'p.PITCHER', precision=1) }} AS GAME_SPEED,
+        {{ pitcher_game_avg('p.RELEASE_SPIN_RATE', 'p.GAME_PK', 'p.PITCHER', precision=0) }} AS GAME_SPIN,
+        {{ pitcher_season_avg('p.RELEASE_SPEED', 'p.GAME_YEAR', 'p.PITCHER', precision=1) }} AS SEASON_SPEED,
+        {{ pitcher_season_avg('p.RELEASE_SPIN_RATE', 'p.GAME_YEAR', 'p.PITCHER', precision=0) }} AS SEASON_SPIN,  
 
         {{ rename_kinematics('p.VX0', 'p.VZ0', 'p.AX', 'p.AZ') }},
 
         p.DES AS PLAY_DESCRIPTION,
         
+        -- Explicitly retained for downstream reference in fact models
+        p.GAME_PK,
+        p.PITCH_TYPE,
+
         p.* EXCLUDE (
             {{ statcast_excluded_columns() }}
         )

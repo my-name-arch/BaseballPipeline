@@ -3,5 +3,5 @@ SELECT
     P_THROWS AS PITCHER_THROWS,
     AGE_PIT AS PITCHER_AGE,
     ROUND(AVG(ARM_ANGLE), 1) AS ARM_ANGLE
-FROM {{ ref('query_log') }}
+FROM {{ ref('stg_statcast_pitches') }}
 GROUP BY 1, 2, 3

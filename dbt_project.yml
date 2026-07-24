@@ -15,7 +15,6 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-# Notice models here is a dictionary/struct, NOT a dash list (-)
 models:
   baseball_pipeline:
     staging:
