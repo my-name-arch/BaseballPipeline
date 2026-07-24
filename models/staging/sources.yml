@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: baseball_raw
+    database: BASEBALL_DB
+    schema: RAW
+    tables:
+      - name: STATCAST_PITCHES
+      - name: DIM_BATTERS

@@ -1,6 +1,6 @@
 SELECT
     PITCH_TYPE,
     PITCH_NAME
-FROM {{ ref('query_log') }}
+FROM {{ ref('stg_statcast_pitches') }}
 WHERE PITCH_TYPE IS NOT NULL
 GROUP BY 1, 2

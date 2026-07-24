@@ -5,5 +5,5 @@ SELECT
     GAME_TYPE,
     HOME_TEAM,
     AWAY_TEAM
-FROM {{ ref('query_log') }}
+FROM {{ ref('stg_statcast_pitches') }}
 GROUP BY 1, 2, 3, 4, 5, 6
