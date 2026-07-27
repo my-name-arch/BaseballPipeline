@@ -51,3 +51,8 @@ models:
       - name: API_BREAK_X_ARM
         tests:
           - not_null
+      - name: ARM_ANGLE
+        tests:
+          - not_null
+
+      
