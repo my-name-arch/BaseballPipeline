@@ -1,6 +1,7 @@
 pandas
 numpy
 scikit-learn
+lightgbm
 snowflake-connector-python
 pyarrow
 dbt-core
