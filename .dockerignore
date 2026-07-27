@@ -1,0 +1,8 @@
+*.csv
+*.parquet
+*.p8
+*.pub
+target/
+dbt_packages/
+logs/
+.git
