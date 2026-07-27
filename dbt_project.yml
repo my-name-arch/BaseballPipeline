@@ -19,3 +19,5 @@ models:
   baseball_pipeline:
     staging:
       +materialized: view
+    marts:
+      +materialized: table
