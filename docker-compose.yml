@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Step 1: Compile dbt staging views and PitchFact mart table
+  dbt_transform:
+    build: .
+    command: dbt run --project-dir .
+
+  # Step 2: Run LightGBM ML Pipeline and produce prediction files
+  ml_pipeline:
+    build: .
+    depends_on:
+      dbt_transform:
+        condition: service_completed_successfully
+    volumes:
+      - .:/app
+    command: python SciKit_Features.py
+
+  # Step 3: Bulk upload predictions into Snowflake table via RSA Key
+  snowflake_upload:
+    build: .
+    depends_on:
+      ml_pipeline:
+        condition: service_completed_successfully
+    volumes:
+      - .:/app
+    command: python upload_parquet_to_snowflake.py
