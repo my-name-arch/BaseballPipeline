@@ -1,8 +1,7 @@
+streamlit
 pandas
 numpy
+plotly
+matplotlib
+seaborn
 scikit-learn
-lightgbm
-snowflake-connector-python
-pyarrow
-dbt-core
-dbt-snowflake
