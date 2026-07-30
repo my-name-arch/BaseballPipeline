@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  dugout-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dugout_dashboard_app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mounts your local directory so updates/CSVs are instantly visible without rebuilding
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
