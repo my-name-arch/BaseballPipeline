@@ -1,14 +1,15 @@
-
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
+# Install build tools, curl, and libgomp1 (required for LightGBM)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
