@@ -1,7 +1,10 @@
+cat << 'EOF' > requirements.txt
 streamlit
-pandas
 numpy
-plotly
-matplotlib
-seaborn
+pandas
 scikit-learn
+lightgbm
+snowflake-connector-python[pandas]
+cryptography
+pyarrow
+EOF
