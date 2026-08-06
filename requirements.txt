@@ -7,4 +7,6 @@ lightgbm
 snowflake-connector-python[pandas]
 cryptography
 pyarrow
+plotly
+statsmodels
 EOF
